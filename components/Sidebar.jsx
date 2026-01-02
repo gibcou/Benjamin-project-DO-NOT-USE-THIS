@@ -27,7 +27,7 @@ function Sidebar({ isSidebarOpen, toggleSidebar }) {
     try {
       await signOut(auth);
       dispatch(clearUser());
-      navigate("/");
+      navigate("/", { replace: true });
     } catch (error) {
       console.error("Error signing out:", error.message);
     }
