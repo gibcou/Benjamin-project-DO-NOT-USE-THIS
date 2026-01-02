@@ -28,6 +28,7 @@ function Sidebar({ isSidebarOpen, toggleSidebar }) {
       await signOut(auth);
       dispatch(clearUser());
       navigate("/", { replace: true });
+      window.location.hash = "#/";
     } catch (error) {
       console.error("Error signing out:", error.message);
     }
