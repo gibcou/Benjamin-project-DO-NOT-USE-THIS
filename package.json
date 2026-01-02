@@ -3,13 +3,13 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://benfeder.github.io/summarist-internship",
+  "homepage": "https://gibcou.github.io/Benjamin-project-DO-NOT-USE-THIS/",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "predeploy": "npm run build",
-"deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d docs"
   },
   "dependencies": {
     "@dataconnect/generated": "file:src/dataconnect-generated",
