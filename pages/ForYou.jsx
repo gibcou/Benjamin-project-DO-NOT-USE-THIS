@@ -1,0 +1,389 @@
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { useSelector } from "react-redux";
+import axios from "axios";
+import { AiOutlineSearch, AiOutlineMenu, AiOutlineClose } from "react-icons/ai";
+import { FiPlay, FiStar, FiClock } from "react-icons/fi";
+import {
+  getAudioDuration,
+  formatDuration,
+  formatDurationVerbose,
+} from "../utils/audioUtils";
+import Sidebar from "../components/Sidebar";
+import { BookRowSkeleton } from "../components/BookSkeleton";
+
+function ForYou() {
+  const { isAuthenticated } = useSelector((state) => state.user);
+  const [selectedBook, setSelectedBook] = useState(null);
+  const [recommendedBooks, setRecommendedBooks] = useState([]);
+  const [suggestedBooks, setSuggestedBooks] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [allBooks, setAllBooks] = useState([]);
+  const [audioDurations, setAudioDurations] = useState({});
+  const [loadingSelected, setLoadingSelected] = useState(true);
+  const [loadingRecommended, setLoadingRecommended] = useState(true);
+  const [loadingSuggested, setLoadingSuggested] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  useEffect(() => {
+    const fetchSelectedBook = async () => {
+      try {
+        setLoadingSelected(true);
+        const response = await axios.get(
+          "https://us-central1-summaristt.cloudfunctions.net/getBooks?status=selected"
+        );
+        if (response.data && response.data[0]) {
+          setSelectedBook(response.data[0]);
+          setAllBooks((prevBooks) => {
+            const bookExists = prevBooks.some(
+              (b) => b.id === response.data[0].id
+            );
+            return bookExists ? prevBooks : [...prevBooks, response.data[0]];
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching selected book:", error);
+      } finally {
+        setLoadingSelected(false);
+      }
+    };
+
+    const fetchRecommendedBooks = async () => {
+      try {
+        setLoadingRecommended(true);
+        const response = await axios.get(
+          "https://us-central1-summaristt.cloudfunctions.net/getBooks?status=recommended"
+        );
+        if (response.data) {
+          setRecommendedBooks(response.data.slice(0, 8));
+          setAllBooks((prevBooks) => {
+            const existingIds = new Set(prevBooks.map((b) => b.id));
+            const newBooks = response.data.filter(
+              (book) => !existingIds.has(book.id)
+            );
+            return [...prevBooks, ...newBooks];
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching recommended books:", error);
+      } finally {
+        setLoadingRecommended(false);
+      }
+    };
+
+    const fetchSuggestedBooks = async () => {
+      try {
+        setLoadingSuggested(true);
+        const response = await axios.get(
+          "https://us-central1-summaristt.cloudfunctions.net/getBooks?status=suggested"
+        );
+        if (response.data) {
+          setSuggestedBooks(response.data.slice(0, 8));
+          setAllBooks((prevBooks) => {
+            const existingIds = new Set(prevBooks.map((b) => b.id));
+            const newBooks = response.data.filter(
+              (book) => !existingIds.has(book.id)
+            );
+            return [...prevBooks, ...newBooks];
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching suggested books:", error);
+      } finally {
+        setLoadingSuggested(false);
+      }
+    };
+
+    fetchSelectedBook();
+    fetchRecommendedBooks();
+    fetchSuggestedBooks();
+  }, []);
+
+  useEffect(() => {
+    if (searchQuery.trim() === "") {
+      setSearchResults([]);
+      return;
+    }
+
+    const fetchSearchResults = async () => {
+      try {
+        const response = await axios.get(
+          `https://us-central1-summaristt.cloudfunctions.net/getBooksByAuthorOrTitle?search=${encodeURIComponent(
+            searchQuery
+          )}`
+        );
+        if (response.data) {
+          setSearchResults(response.data);
+        }
+      } catch (error) {
+        console.error("Error fetching search results:", error);
+        setSearchResults([]);
+      }
+    };
+
+    const debounceTimer = setTimeout(() => {
+      fetchSearchResults();
+    }, 300);
+
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const loadAudioDurations = async () => {
+      const durations = {};
+
+      await Promise.all(
+        allBooks.map(async (book) => {
+          if (book.audioLink) {
+            try {
+              const duration = await getAudioDuration(book.audioLink);
+              durations[book.id] = duration;
+            } catch (error) {
+              console.error(`Error loading duration for ${book.id}:`, error);
+              durations[book.id] = null;
+            }
+          }
+        })
+      );
+
+      setAudioDurations(durations);
+    };
+
+    if (allBooks.length > 0) {
+      loadAudioDurations();
+    }
+  }, [allBooks]);
+
+  return (
+    <div className="for-you-page">
+      <Sidebar isSidebarOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
+      <main className="for-you-content">
+        <div className="fixed-header">
+          <div className="mobile-header-wrapper">
+            <button className="hamburger-menu" onClick={toggleSidebar}>
+              {isSidebarOpen ? <AiOutlineClose /> : <AiOutlineMenu />}
+            </button>
+            <div className="search-bar-container">
+              <div className="search-bar">
+                <input
+                  type="text"
+                  className="search-bar__input"
+                  placeholder="Search for books"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <div className="search-bar__divider"></div>
+                <AiOutlineSearch className="search-bar__icon" />
+              </div>
+            </div>
+          </div>
+          {searchQuery.trim() !== "" && searchResults.length === 0 && (
+            <div className="search-results">
+              <div className="search-no-results">No books found</div>
+            </div>
+          )}
+          {searchResults.length > 0 && (
+            <div className="search-results">
+              {searchResults.map((book) => (
+                <Link
+                  key={book.id}
+                  to={`/book/${book.id}`}
+                  className="search-result"
+                  onClick={() => setSearchQuery("")}
+                >
+                  <img
+                    src={book.imageLink}
+                    alt={book.title}
+                    className="search-result__image"
+                  />
+                  <div className="search-result__info">
+                    <h4 className="search-result__title">{book.title}</h4>
+                    <p className="search-result__author">{book.author}</p>
+                    <div className="search-result__duration">
+                      <FiPlay className="search-result__play-icon" />
+                      <span>
+                        {book.audioLink
+                          ? formatDuration(audioDurations[book.id])
+                          : "N/A"}
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="selected-section">
+          <h2 className="selected-section__title">Selected just for you</h2>
+          {loadingSelected ? (
+            <div className="selected-book skeleton-selected">
+              <div className="skeleton__selected-content"></div>
+              <div className="selected-book__divider"></div>
+              <div className="selected-book__details">
+                <div className="skeleton__selected-image"></div>
+                <div className="skeleton__selected-info">
+                  <div className="skeleton__selected-title"></div>
+                  <div className="skeleton__selected-author"></div>
+                  <div className="skeleton__selected-duration"></div>
+                </div>
+              </div>
+            </div>
+          ) : selectedBook ? (
+            <Link to={`/book/${selectedBook.id}`} className="selected-book">
+              <div className="selected-book__content">
+                <p className="selected-book__subtitle">
+                  {selectedBook.subTitle}
+                </p>
+              </div>
+              <div className="selected-book__divider"></div>
+              <div className="selected-book__details">
+                <img
+                  src={selectedBook.imageLink}
+                  alt={selectedBook.title}
+                  className="selected-book__image"
+                />
+                <div className="selected-book__info">
+                  <h3 className="selected-book__title">{selectedBook.title}</h3>
+                  <p className="selected-book__author">{selectedBook.author}</p>
+                  <div className="selected-book__audio">
+                    <FiClock className="selected-book__play-icon" />
+                    <span className="selected-book__duration">
+                      {selectedBook.audioLink
+                        ? formatDurationVerbose(audioDurations[selectedBook.id])
+                        : "N/A"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </Link>
+          ) : (
+            <div className="selected-book selected-book--loading">
+              <p>Loading...</p>
+            </div>
+          )}
+        </div>
+
+        <div className="recommended-section">
+          <h2 className="recommended-section__title">Recommended For You</h2>
+          <p className="recommended-section__subtitle">
+            We think you'll like these
+          </p>
+          <div className="recommended-books">
+            <div className="recommended-books__slider">
+              {loadingRecommended ? (
+                <BookRowSkeleton />
+              ) : (
+                recommendedBooks.map((book) => (
+                  <Link
+                    key={book.id}
+                    to={`/book/${book.id}`}
+                    className="recommended-book"
+                  >
+                    {book.subscriptionRequired && (
+                      <span className="recommended-book__premium-badge">
+                        Premium
+                      </span>
+                    )}
+                    <div className="recommended-book__image-wrapper">
+                      <img
+                        src={book.imageLink}
+                        alt={book.title}
+                        className="recommended-book__image"
+                      />
+                      {book.audioLink && (
+                        <span className="recommended-book__duration-overlay">
+                          {formatDuration(audioDurations[book.id])}
+                        </span>
+                      )}
+                    </div>
+                    <h4 className="recommended-book__title">{book.title}</h4>
+                    <p className="recommended-book__author">{book.author}</p>
+                    <p className="recommended-book__subtitle">
+                      {book.subTitle}
+                    </p>
+                    <div className="recommended-book__footer">
+                      <div className="recommended-book__audio">
+                        <FiClock className="recommended-book__play-icon" />
+                        <span className="recommended-book__duration">
+                          {book.audioLink
+                            ? formatDuration(audioDurations[book.id])
+                            : "N/A"}
+                        </span>
+                      </div>
+                      <div className="recommended-book__rating">
+                        <FiStar className="recommended-book__star-icon" />
+                        <span>{book.averageRating || "N/A"}</span>
+                      </div>
+                    </div>
+                  </Link>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="suggested-section">
+          <h2 className="suggested-section__title">Suggested Books</h2>
+          <p className="suggested-section__subtitle">Browse those books</p>
+          <div className="suggested-books">
+            <div className="suggested-books__slider">
+              {loadingSuggested ? (
+                <BookRowSkeleton />
+              ) : (
+                suggestedBooks.map((book) => (
+                  <Link
+                    key={book.id}
+                    to={`/book/${book.id}`}
+                    className="suggested-book"
+                  >
+                    {book.subscriptionRequired && (
+                      <span className="suggested-book__premium-badge">
+                        Premium
+                      </span>
+                    )}
+                    <div className="suggested-book__image-wrapper">
+                      <img
+                        src={book.imageLink}
+                        alt={book.title}
+                        className="suggested-book__image"
+                      />
+                      {book.audioLink && (
+                        <span className="suggested-book__duration-overlay">
+                          {formatDuration(audioDurations[book.id])}
+                        </span>
+                      )}
+                    </div>
+                    <h4 className="suggested-book__title">{book.title}</h4>
+                    <p className="suggested-book__author">{book.author}</p>
+                    <p className="suggested-book__subtitle">{book.subTitle}</p>
+                    <div className="suggested-book__footer">
+                      <div className="suggested-book__audio">
+                        <FiClock className="suggested-book__play-icon" />
+                        <span className="suggested-book__duration">
+                          {book.audioLink
+                            ? formatDuration(audioDurations[book.id])
+                            : "N/A"}
+                        </span>
+                      </div>
+                      <div className="suggested-book__rating">
+                        <FiStar className="suggested-book__star-icon" />
+                        <span>{book.averageRating || "N/A"}</span>
+                      </div>
+                    </div>
+                  </Link>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+export default ForYou;
