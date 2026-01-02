@@ -53,7 +53,9 @@ function Sidebar({ isSidebarOpen, toggleSidebar }) {
       <aside className={`sidebar ${isSidebarOpen ? "sidebar--open" : ""}`}>
         <div className="sidebar__top">
           <div className="sidebar__logo">
-            <img src={logo} alt="logo" />
+            <Link to="/" onClick={handleLinkClick} className="sidebar__logo-link">
+              <img src={logo} alt="logo" />
+            </Link>
           </div>
           <nav className="sidebar__nav">
             <Link

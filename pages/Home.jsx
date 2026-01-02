@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { AiFillFileText, AiFillBulb, AiFillAudio } from "react-icons/ai";
 import { BsStarFill, BsStarHalf } from "react-icons/bs";
 import { BiCrown } from "react-icons/bi";
@@ -23,7 +24,9 @@ function Home() {
       <nav className="nav">
         <div className="nav__wrapper">
           <figure className="nav__img--mask">
-            <img className="nav__img" src={logo} alt="logo" />
+            <Link to="/">
+              <img className="nav__img" src={logo} alt="logo" />
+            </Link>
           </figure>
           <ul className="nav__list--wrapper">
             <li className="nav__list nav__list--login" onClick={openLoginModal}>
