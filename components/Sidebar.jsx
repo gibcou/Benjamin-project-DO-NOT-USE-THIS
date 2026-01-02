@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import {
   AiOutlineHome,
@@ -18,6 +18,7 @@ import logo from "../assets/logo.png";
 
 function Sidebar({ isSidebarOpen, toggleSidebar }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const dispatch = useDispatch();
   const { isAuthenticated } = useSelector((state) => state.user);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -26,6 +27,7 @@ function Sidebar({ isSidebarOpen, toggleSidebar }) {
     try {
       await signOut(auth);
       dispatch(clearUser());
+      navigate("/");
     } catch (error) {
       console.error("Error signing out:", error.message);
     }

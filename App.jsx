@@ -1,17 +1,17 @@
-import React, { useEffect } from "react";
+import React, { useEffect, Suspense, lazy } from "react";
 import { Routes, Route } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "./firebase-config";
 import { doc, getDoc } from "firebase/firestore";
 import { setUser, clearUser } from "./redux/userSlice";
-import Home from "./pages/Home";
-import ForYou from "./pages/ForYou";
-import BookDetail from "./pages/BookDetail";
-import Library from "./pages/Library";
-import Player from "./pages/Player";
-import Settings from "./pages/Settings";
-import ChoosePlan from "./pages/ChoosePlan";
+const Home = lazy(() => import("./pages/Home"));
+const ForYou = lazy(() => import("./pages/ForYou"));
+const BookDetail = lazy(() => import("./pages/BookDetail"));
+const Library = lazy(() => import("./pages/Library"));
+const Player = lazy(() => import("./pages/Player"));
+const Settings = lazy(() => import("./pages/Settings"));
+const ChoosePlan = lazy(() => import("./pages/ChoosePlan"));
 import "./style.css";
 
 function App() {
@@ -58,15 +58,17 @@ function App() {
   }, [dispatch]);
 
   return (
-    <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/for-you" element={<ForYou />} />
-      <Route path="/book/:id" element={<BookDetail />} />
-      <Route path="/library" element={<Library />} />
-      <Route path="/player/:id" element={<Player />} />
-      <Route path="/settings" element={<Settings />} />
-      <Route path="/choose-plan" element={<ChoosePlan />} />
-    </Routes>
+    <Suspense fallback={<div className="page-loading">Loading...</div>}>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/for-you" element={<ForYou />} />
+        <Route path="/book/:id" element={<BookDetail />} />
+        <Route path="/library" element={<Library />} />
+        <Route path="/player/:id" element={<Player />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/choose-plan" element={<ChoosePlan />} />
+      </Routes>
+    </Suspense>
   );
 }
 

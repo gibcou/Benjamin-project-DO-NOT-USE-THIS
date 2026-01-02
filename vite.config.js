@@ -7,5 +7,15 @@ export default defineConfig({
   base: "./",
   build: {
     outDir: "docs",
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ["react", "react-dom"],
+          router: ["react-router-dom"],
+          axios: ["axios"],
+          icons: ["react-icons"],
+        },
+      },
+    },
   },
 });
